@@ -8,47 +8,64 @@ import org.springframework.kafka.core.KafkaOperations;
 import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.converter.BatchMessagingMessageConverter;
 import org.springframework.kafka.support.converter.JsonMessageConverter;
 import org.springframework.kafka.support.converter.RecordMessageConverter;
+import org.springframework.kafka.support.mapping.DefaultJackson2JavaTypeMapper;
+import org.springframework.kafka.support.mapping.Jackson2JavaTypeMapper;
 import org.springframework.util.backoff.FixedBackOff;
+import ru.strebkov.t1_Excample_Kafka.model.Bar2;
+import ru.strebkov.t1_Excample_Kafka.model.Foo2;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Configuration
 public class KafkaConfig {
+
     @Bean
     public NewTopic topic() {
-        return new NewTopic("topic1", 1, (short) 1); // имя, № топика, ?-реплик
+        return new NewTopic("topic1", 1, (short) 1);
     }
 
     @Bean
     public NewTopic topic2() {
-        return new NewTopic("topic1.DLT", 1, (short) 1);
+        return new NewTopic("topic2", 1, (short) 1);
     }
 
     @Bean
-    public RecordMessageConverter converter(){
-        return new JsonMessageConverter();
+    public NewTopic topic3() {
+        return new NewTopic("topic3", 1, (short) 1);
     }
+    @Bean
+    public NewTopic dlt() {
+        return new NewTopic("topic1.DLT", 1, (short) 1);
+    }
+
+//    @Bean
+//    public RecordMessageConverter converter(){
+//        return new JsonMessageConverter();
+//    }
 
 //    @Bean
 //    public BatchMessagingMessageConverter batchMessagingMessageConverter(){
 //        return new BatchMessagingMessageConverter(converter());
 //    }
-//    @Bean
-//    public RecordMessageConverter converter() {
-//        JsonMessageConverter converter = new JsonMessageConverter();
-//        DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
-//        typeMapper.setTypePrecedence(Jackson2JavaTypeMapper.TypePrecedence.TYPE_ID);
-//        typeMapper.addTrustedPackages("com.example.kafkaexample.model");
-//        Map<String, Class<?>> classMap = new HashMap<>();
-//        classMap.put("foo", Foo2.class);
-//        classMap.put("bar", Bar2.class);
-//        typeMapper.setIdClassMapping(classMap);
-//        converter.setTypeMapper(typeMapper);
-//        return converter;
-//    }
 
-
+    @Bean
+    public RecordMessageConverter converter() {
+        JsonMessageConverter converter = new JsonMessageConverter();
+        DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
+        typeMapper.setTypePrecedence(Jackson2JavaTypeMapper.TypePrecedence.TYPE_ID);
+        typeMapper.addTrustedPackages("ru.strebkov.t1_Excample_Kafka.model");
+        Map<String, Class<?>> classMap = new HashMap<>();
+        classMap.put("foo", Foo2.class);
+        classMap.put("bar", Bar2.class);
+        typeMapper.setIdClassMapping(classMap);
+        converter.setTypeMapper(typeMapper);
+        return converter;
+    }
     //пользовательский обработчик ошибок, который будет обрабатывать исключение десериализации и
     // увеличивать смещение потребителя.
     // Это позволит нам пропустить недопустимое сообщение и продолжить использование.
@@ -68,5 +85,16 @@ public class KafkaConfig {
 
         //Простая реализация BackOff, обеспечивающая фиксированный интервал между двумя попытками и
         // максимальное количество повторных попыток.
+    }
+
+
+    @Bean
+    public NewTopic foos() {
+        return new NewTopic("foos", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic bars() {
+        return new NewTopic("bars", 1, (short) 1);
     }
 }

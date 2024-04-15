@@ -2,14 +2,9 @@ spring:
   kafka:
     producer:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-#      transaction-id-prefix: tx-
-      #        properties:
-    #          "[spring.json.type.mapping]": foo:com.example.kafkaexample.model.Foo1, bar:com.example.kafkaexample.model.Bar1
+      properties:
+         "[spring.json.type.mapping]": foo:ru.strebkov.t1_Excample_Kafka.model.Foo1, bar:ru.strebkov.t1_Excample_Kafka.model.Bar1
     consumer:
       value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
-#      properties:
-#        isolation.level: read_committed
-#    listener:
-#      type: batch
 server:
   port: 7878
