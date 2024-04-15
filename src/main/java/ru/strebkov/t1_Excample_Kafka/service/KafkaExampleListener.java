@@ -2,57 +2,64 @@ package ru.strebkov.t1_Excample_Kafka.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import ru.strebkov.t1_Excample_Kafka.model.Bar2;
+import ru.strebkov.t1_Excample_Kafka.model.Foo1;
 import ru.strebkov.t1_Excample_Kafka.model.Foo2;
 
 import java.util.List;
 
 @Service
 @Slf4j
-@KafkaListener(id = "multiGroup", topics = {"foos", "bars"})
+//@KafkaListener(id = "multiGroup", topics = {"foos", "bars"})
 @RequiredArgsConstructor
 public class KafkaExampleListener {
 
+    //  пример транзакции, либо все сообщения или нет
     private final KafkaTemplate<Object, Object> template;
+
     // для отправки сообщений в темы Kafka,
     // включая сериализацию и разбиение сообщений
 
 
-//    @KafkaListener(id = "fooGroup", topics = "topic1")
-//    public void listen(Foo2 foo2) {
-//        log.info("Received: {}", foo2);
-//        if (foo2.getFoo().startsWith("fail")) {
-//            throw new RuntimeException();
-//        }
-//        log.info("OK");
-//    }
-//
-//
-//    @KafkaListener(id = "dltGroup", topics = "topic1.DLT")
-//    public void listen1(byte[] in) {
-//        log.info("Received listen1: {}", new String(in));
-//    }
 
-    // динамический десиализатор
+    //@RetryableTopic повторной попытке неудачной обработки записей.
+    // @RetryableTopic с другой стороны, это неблокирующая повторная попытка,
+    // поскольку при каждом сбое неудачная запись перемещается в другую тему.
+    // Это позволяет обрабатывать последующие записи во время повторных попыток.
+    // Полезно, если строгий порядок не важен.
+    //  attempts = "3" N - попыток 3 по дефолту,
+    @RetryableTopic(attempts = "5", backoff = @Backoff(delay = 2000, maxDelay = 10000, multiplier = 2))
+    @KafkaListener(id = "fooGroup", topics = "topic3")
+    public void listen3(String in,
+                        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                        @Header(KafkaHeaders.OFFSET) long offset) {
 
-    @KafkaHandler
-    public void foo(Foo2 foo2) {
-        log.info("Received Foo2: {}", foo2);
+        log.info("Received from listen3: {}, topic: {}, offset: {}", in, topic, offset);
+        if (in.startsWith("fail")) {
+            throw new RuntimeException("failed");
+        }
     }
 
-    @KafkaHandler
-    public void bar(Bar2 bar2) {
-        log.info("Received Bar2: {}", bar2);
-    }
+    //@DltHandler- Аннотация для определения метода, который должен обрабатывать сообщение темы DLT.
+    // У метода могут быть те же параметры, что и у KafkaListener метода (сообщение, подтверждение и т.д.).
+    //Аннотированный метод должен находиться в том же классе, что и соответствующая KafkaListener аннотация.
+    // тема мертвых писем (DLT)
 
-    @KafkaHandler(isDefault = true)
-    public void unknown(Object object) {
-        log.info("Received unknown: {}", object);
+    @DltHandler
+    public void listenDlt(String in, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic, @Header(KafkaHeaders.OFFSET) long offset) {
+        log.info("Received from DLT: {}, topic: {}, offset: {}", in, topic, offset);
     }
-
 }

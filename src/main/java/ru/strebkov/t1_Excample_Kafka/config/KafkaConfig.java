@@ -43,40 +43,14 @@ public class KafkaConfig {
         return new NewTopic("topic1.DLT", 1, (short) 1);
     }
 
-//    @Bean
-//    public RecordMessageConverter converter(){
-//        return new JsonMessageConverter();
-//    }
 
-//    @Bean
-//    public BatchMessagingMessageConverter batchMessagingMessageConverter(){
-//        return new BatchMessagingMessageConverter(converter());
-//    }
 
-    @Bean
-    public RecordMessageConverter converter() {
-        JsonMessageConverter converter = new JsonMessageConverter();
-        DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
-        typeMapper.setTypePrecedence(Jackson2JavaTypeMapper.TypePrecedence.TYPE_ID);
-        typeMapper.addTrustedPackages("ru.strebkov.t1_Excample_Kafka.model");
-        Map<String, Class<?>> classMap = new HashMap<>();
-        classMap.put("foo", Foo2.class);
-        classMap.put("bar", Bar2.class);
-        typeMapper.setIdClassMapping(classMap);
-        converter.setTypeMapper(typeMapper);
-        return converter;
-    }
-    //пользовательский обработчик ошибок, который будет обрабатывать исключение десериализации и
-    // увеличивать смещение потребителя.
-    // Это позволит нам пропустить недопустимое сообщение и продолжить использование.
     @Bean
     public CommonErrorHandler errorHandler(KafkaOperations<Object, Object> kafkaOperations) {
-
+        return new DefaultErrorHandler(new DeadLetterPublishingRecoverer(kafkaOperations), new FixedBackOff(1000L, 2));
         // DeadLetterPublishingRecoverer просто публикует входящее содержимое ConsumerRecord.
         //Когда ErrorHandlingDeserializer2 обнаруживает исключение десериализации, в ConsumerRecord отсутствует поле value() (поскольку его невозможно десериализовать).
         //Вместо этого ошибка помещается в один из двух заголовков:
-
-        return new DefaultErrorHandler(new DeadLetterPublishingRecoverer(kafkaOperations), new FixedBackOff(1000L, 2));
 
         // Header header = record.headers().lastHeader(headerName);
         //DeserializationException ex = (DeserializationException) new ObjectInputStream(
