@@ -59,7 +59,18 @@ public class KafkaExampleListener {
     // тема мертвых писем (DLT)
 
     @DltHandler
-    public void listenDlt(String in, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic, @Header(KafkaHeaders.OFFSET) long offset) {
+    public void listenDlt(String in,
+                          @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                          @Header(KafkaHeaders.OFFSET) long offset) {
         log.info("Received from DLT: {}, topic: {}, offset: {}", in, topic, offset);
     }
+    // В реальных проектах обычно повторяют попытку обработки события в случае ошибок перед отправкой его в DLT.
+    // Этого можно легко достичь,
+    // используя механизм неблокирующих попыток, предоставляемый Spring Kafka.
+
+    // В этой статье мы изучили три различные стратегии DLT. Первая - это стратегия FAIL_ON_ERROR,
+    // когда пользователь DLT не будет пытаться повторно обработать событие в случае сбоя. Напротив,
+    // стратегия ALWAYS_RETRY_ON_ERROR гарантирует, что пользователь DLT попытается повторно обработать событие
+    // в случае сбоя. Это значение используется по умолчанию, когда явно не задана никакая другая стратегия.
+    // Последней является стратегия NO_DLT, которая полностью отключает механизм DLT.
 }
